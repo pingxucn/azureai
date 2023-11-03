@@ -1,5 +1,13 @@
 # azureai
 
+Project structure is described as below
+
 ## data
 
-subfolder is list as below
+./data/speech keep wav files
+
+## src
+
+./src/app.py is sample python scirpt
+
+./src/sample_notebook.ipynb is sample jupyter notebook
