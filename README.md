@@ -32,4 +32,4 @@ C. How to upload VS code to Github,
 
 1.  Register Domain and email in [GoDaddy](https://www.godaddy.com/en-ca), first year is around C$42
 2.  Apply for Azure free trial account using the email above
-3.  Submit [a registration form](https://aka.ms/oai/access) to access to Azure OpenAI, it will take 10 business days to get response.
+3.  Submit [a registration form](https://aka.ms/oai/access) to access to Azure OpenAI.
