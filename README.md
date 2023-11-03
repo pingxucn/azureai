@@ -12,7 +12,7 @@ Project structure is described as below
 
 ./src/sample_notebook.ipynb is sample jupyter notebook
 
-## environment setup
+## Environment setup
 
 A. How to setup miniconda virtual environment \
 setup_miniconda.md
@@ -27,3 +27,9 @@ C. How to upload VS code to Github,
 
 2. Using Git with Visual Studio Code \
    https://www.youtube.com/watch?v=i_23KUAEtUM
+
+## Access to Azure OpenAI
+
+1.  Register Domain and email in GoDaddy, first year is around C$42
+2.  Apply for Azure free trial account using the email above
+3.  Submit [a registration form](https://aka.ms/oai/access) to access to Azure OpenAI, it will take 10 business days to get response.
