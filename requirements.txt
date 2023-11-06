@@ -2,3 +2,4 @@ ipykernel
 azure-cognitiveservices-speech
 azure-core
 azure-common
+azure-ai-textanalytics
