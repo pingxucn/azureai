@@ -36,8 +36,8 @@ Once the appropriate environment is activated, you can create and open a Jupyter
 ## Create or open a Jupyter Notebook
 You can create a Jupyter Notebook by running the <strong>Create: New Jupyter Notebook</strong> command from the Command Palette (Ctrl+Shift+P) or by creating a new .ipynb file in your workspace.
 
-## Access to Azure OpenAI
-
+## Access to Azure OpenAI Service
+<strong>This is for Azure OpenAI Service access, your personal account(free trial or pay-as-you-go) can access to most of Azure AI services, like Azure AI Document Intelligence </strong>
 1.  Register Domain and email in [GoDaddy](https://www.godaddy.com/en-ca), first year is around C$42
 2.  Apply for Azure free trial account using the email above
 3.  Submit [a registration form](https://aka.ms/oai/access) to access to Azure OpenAI.
