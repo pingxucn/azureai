@@ -51,7 +51,7 @@ Verify which version of Python is in your current environment:
 ```
 
 Step 6: Managing packages \
-For example, install openai into the current environment
+For example, install Jupyter in the current virtual environment
 
 ```
 (azure) C:\>pip install ipykernel
