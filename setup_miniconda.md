@@ -4,7 +4,7 @@ To create a virtual environment using Conda's "mini" environment, you can follow
 
 ## Windows setup
 
-Step 1: Download
+Step 1: Download in command window
 
 ```
 curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -o miniconda.exe
