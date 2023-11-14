@@ -1,81 +1,41 @@
-import os 
-# from dotenv import load_dotenv
+import azure.cognitiveservices.speech as speechsdk
+import os
+speech_key, service_region = os.getenv("AZURE_SPEECH_KEY"), os.getenv('AZURE_SPEECH_REGION')
+def convert_speech_to_text(audio_file):
+    print("service_key="+speech_key)
+    #speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
+    #speech_recognition_language="zh-cn"
+    speech_recognition_language="english"
+    speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region,
+                                       speech_recognition_language=speech_recognition_language)
 
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.formrecognizer import DocumentAnalysisClient
+    # Replace with the path to your audio file
+    if os.path.exists(audio_file):
+        # Creates an audio configuration that points to an audio file
+        audio_config = speechsdk.audio.AudioConfig(filename=audio_file)
 
-def main(): 
-        
-    try: 
-    
-        # Get configuration settings 
-        # load_dotenv()
-        form_endpoint = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT')
-        form_key = os.getenv('AZURE_FORM_RECOGNIZER_KEY')
-        
-        # Create client using endpoint and key
-        document_analysis_client = DocumentAnalysisClient(
-            endpoint=form_endpoint, credential=AzureKeyCredential(form_key)
-        )
+        # Creates a recognizer with the given settings
+        speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
+        print(speech_recognizer)
 
-        # Model ID from when you trained your model.
-        model_id = os.getenv('AZURE_FORM_RECOGNIZER_MODEL_ID')
+        print("Recognizing speech from file...")
+        result = speech_recognizer.recognize_once()
+        if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+            print("Recognized: {}".format(result.text))
+        elif result.reason == speechsdk.ResultReason.NoMatch:
+            print("No speech could be recognized: {}".format(result.no_match_details))
+        elif result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = result.cancellation_details
+            print("Speech Recognition canceled: {}".format(cancellation_details.reason))
+            if cancellation_details.reason == speechsdk.CancellationReason.Error:
+                print("Error details: {}".format(cancellation_details.error_details))
+        # Prints the recognized text
+        print(result.text)
 
-        # Test trained model with a new form 
-        ## from azure storage
-        file_url = "https://rstorage2speech.blob.core.windows.net/speechtest/2310.11511.pdf?sp=r&st=2023-11-08T00:25:47Z&se=2023-11-08T08:25:47Z&spr=https&sv=2022-11-02&sr=b&sig=0gIGt042dSVHPbezQZOj4D%2FD9XGS8qt5s5u3vk4DkOc%3D"
-        poller = document_analysis_client.begin_analyze_document_from_url(model_id=model_id, document_url=file_url)
+        print("Recognizing finished")
+    else:
+        print("File doesn't exit:"+ audio_file)
 
-        ## from local file
-        # file_path = "../data/pdf/test/2308.00479.pdf"
-        # with open(file_path, "rb") as f: 
-        #     poller = document_analysis_client.begin_analyze_document(model_id=model_id, document=f)
+audio_file_path = ".\\data\\speech\\time.wav" 
+convert_speech_to_text(audio_file_path)
 
-        result = poller.result()
-        
-        for idx, document in enumerate(result.documents):
-            print("--------Analyzing document #{}--------".format(idx + 1))
-            print("Document has type {}".format(document.doc_type))
-            print("Document has confidence {}".format(document.confidence))
-            print("Document was analyzed by model with ID {}".format(result.model_id))
-            for name, field in document.fields.items():
-                field_value = field.value if field.value else field.content
-                print("......found field of type '{}' with value '{}' and with confidence {}".format(field.value_type, field_value, field.confidence))
-
-
-        # iterate over tables, lines, and selection marks on each page
-        print(f"Total number of pages: {len(result.pages)}")
-        # for page in result.pages:
-        #     print("\nLines found on page {}".format(page.page_number))
-        #     for line in page.lines:
-        #         print("...Line '{}'".format(line.content.encode('utf-8')))
-        #     for word in page.words:
-        #         print(
-        #             "...Word '{}' has a confidence of {}".format(
-        #                 word.content.encode('utf-8'), word.confidence
-        #             )
-        #         )
-        #     for selection_mark in page.selection_marks:
-        #         print(
-        #             "...Selection mark is '{}' and has a confidence of {}".format(
-        #                 selection_mark.state, selection_mark.confidence
-        #             )
-        #         )
-
-        # for i, table in enumerate(result.tables):
-        #     print("\nTable {} can be found on page:".format(i + 1))
-        #     for region in table.bounding_regions:
-        #         print("...{}".format(i + 1, region.page_number))
-        #     for cell in table.cells:
-        #         print(
-        #             "...Cell[{}][{}] has content '{}'".format(
-        #                 cell.row_index, cell.column_index, cell.content.encode('utf-8')
-        #             )
-        #         )
-        print("-----------------------------------")
-        
-    except Exception as ex:
-        print(ex)
-
-if __name__ == '__main__': 
-    main()

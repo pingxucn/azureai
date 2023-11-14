@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schema.cognitiveservices.azure.com/formrecognizer/2021-03-01/fields.json",
+	"fields": [
+		{
+			"fieldKey": "authors",
+			"fieldType": "string",
+			"fieldFormat": "not-specified"
+		},
+		{
+			"fieldKey": "papertitle",
+			"fieldType": "string",
+			"fieldFormat": "not-specified"
+		},
+		{
+			"fieldKey": "abstract",
+			"fieldType": "string",
+			"fieldFormat": "not-specified"
+		}
+	],
+	"definitions": {}
+}
