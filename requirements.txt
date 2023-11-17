@@ -1,4 +1,5 @@
 ipykernel
+openai==1.2.1
 azure-cognitiveservices-speech
 azure-core
 azure-common
@@ -6,3 +7,4 @@ azure-ai-textanalytics
 azure-ai-formrecognizer
 azure-storage-blob
 azure-identity
+azure-search-documents==11.4.0b11
