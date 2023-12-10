@@ -183,7 +183,7 @@ questions = [
     # "find context relevent to amount for {cash equivalents and restricted cash at end of period} as of April 30, 2023 ",
     # "find context relevent to amount for {Consolidated net income} as of April 30, 2023",
     # "find context relevent to information for {legal proceedings or certain regulatory matters}",
-    # "find context relevent to Rating for {Rating agency for Long-term debt}",
+    "find context relevent to Rating for {Rating agency for Long-term debt}",
 ]
 
 for question in questions:
