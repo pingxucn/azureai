@@ -1,250 +1,44 @@
-import datetime
-import os, uuid
-from azure.identity import DefaultAzureCredential
-from azure.storage.blob import (
-    BlobServiceClient,
-    ContainerClient,
-    BlobClient,
-    BlobSasPermissions,
-    ResourceTypes,
-    AccountSasPermissions,
-    UserDelegationKey,
-    generate_account_sas,
-    generate_container_sas,
-    generate_blob_sas
-)
-from azure.core.exceptions import ResourceNotFoundError
-from azure.ai.formrecognizer import FormRecognizerClient
-from azure.ai.formrecognizer import FormTrainingClient
-from azure.core.credentials import AzureKeyCredential
+import urllib.request
+import json
+import os
+import ssl
 
-class SASSamples(object):
+def allowSelfSignedHttps(allowed):
+    # bypass the server certificate verification on client side
+    if allowed and not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None):
+        ssl._create_default_https_context = ssl._create_unverified_context
 
-    # <Snippet_create_account_sas>
-    def create_account_sas(self, account_name: str, account_key: str):
-        # Create an account SAS that's valid for one day
-        start_time = datetime.datetime.now(datetime.timezone.utc)
-        expiry_time = start_time + datetime.timedelta(days=1)
+allowSelfSignedHttps(True) # this line is needed if you use self-signed certificate in your scoring service.
 
-        # Define the SAS token permissions
-        sas_permissions=AccountSasPermissions(read=True)
+# Request data goes here
+# The example below assumes JSON formatting which may be updated
+# depending on the format your endpoint expects.
+# More information can be found here:
+# https://docs.microsoft.com/azure/machine-learning/how-to-deploy-advanced-entry-script
+data = {'chat_history': [], 'question': 'how are you'}
 
-        # Define the SAS token resource types
-        # For this example, we grant access to service-level APIs
-        sas_resource_types=ResourceTypes(service=True)
+body = str.encode(json.dumps(data))
 
-        sas_token = generate_account_sas(
-            account_name=account_name,
-            account_key=account_key,
-            resource_types=sas_resource_types,
-            permission=sas_permissions,
-            expiry=expiry_time,
-            start=start_time
-        )
+url = 'https://machinelearningdemo-deploy2.canadacentral.inference.ml.azure.com/score'
+# Replace this with the primary/secondary key or AMLToken for the endpoint
+api_key = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjM1RjEzRUVDMzI2RjI1NkIxOTM5NUE3QTE3RjIyNjE4Qzk1MjVGRjIiLCJ0eXAiOiJKV1QifQ.eyJjYW5SZWZyZXNoIjoiRmFsc2UiLCJ3b3Jrc3BhY2VJZCI6ImRlM2I4Y2E5LWIzZjctNDlhOC04NGEyLWI1NTAwNzQ3M2YzNCIsInRpZCI6ImFkYWE0OThkLTQxZWEtNDQ2MC1hYjkwLTViY2I1N2ZmYjMzMSIsIm9pZCI6ImMzNWUzMzNiLWU5OGYtNGFmYy04MTA0LTg5YmQ3OTgzM2U5NSIsImFjdGlvbnMiOiJbXCJNaWNyb3NvZnQuTWFjaGluZUxlYXJuaW5nU2VydmljZXMvd29ya3NwYWNlcy9vbmxpbmVFbmRwb2ludHMvc2NvcmUvYWN0aW9uXCJdIiwiZW5kcG9pbnROYW1lIjoibWFjaGluZWxlYXJuaW5nZGVtby1kZXBsb3kyIiwic2VydmljZUlkIjoibWFjaGluZWxlYXJuaW5nZGVtby1kZXBsb3kyIiwiZXhwIjoxNzAyMDkyNzk2LCJpc3MiOiJhenVyZW1sIiwiYXVkIjoiYXp1cmVtbCJ9.Kf6BhKumNqQhnbIz1jVw1n80kh8gVTWVP49pGVFvUXlKC5WtpBI61xrVjkGmdNjWBX4TZuZ7tsjQCzTiH789esAvhfUrWcilVuACdQQvBwnyb8J9aKvBxQhtSNhe2qZgaLfTM_I51gZ1gbeChCgcYw0s7mz23xw7mQfZyY2ipd9GLrZhozT2jNBYhboqcdjmy4Hzz1PryAUvnzUKL9s0F8A0nBVFmn7LnzUgiPWXlL8NtglJpebH9et3El4aN7vzZG9iQCS3ORLGmvl-bI2W5e-E6BXkUGhJWmoJck4pRHrzvFunQWMsyAOVeGaU-aeYp-VS69RVUSSGG8lksyGNgQ'
+if not api_key:
+    raise Exception("A key should be provided to invoke the endpoint")
 
-        return sas_token
-    # </Snippet_create_account_sas>
+# The azureml-model-deployment header will force the request to go to a specific deployment.
+# Remove this header to have the request observe the endpoint traffic rules
+headers = {'Content-Type':'application/json', 'Authorization':('Bearer '+ api_key), 'azureml-model-deployment': 'machinelearningdemo-deploy2-1' }
 
-    def use_account_sas(self, blob_service_client: BlobServiceClient):
-        account_name = blob_service_client.account_name
-        account_key = blob_service_client.credential.account_key
-        sas_token = self.create_account_sas(account_name=account_name, account_key=account_key)
+req = urllib.request.Request(url, body, headers)
 
-        # <Snippet_use_account_sas>
-        # The SAS token string can be appended to the account URL with a ? delimiter
-        # or passed as the credential argument to the client constructor
-        account_sas_url = f"{blob_service_client.url}?{sas_token}"
+try:
+    response = urllib.request.urlopen(req)
 
-        # Create a BlobServiceClient object
-        blob_service_client_sas = BlobServiceClient(account_url=account_sas_url)
-        # </Snippet_use_account_sas>
+    result = response.read()
+    print(result)
+except urllib.error.HTTPError as error:
+    print("The request failed with status code: " + str(error.code))
 
-    # <Snippet_request_user_delegation_key>
-    def request_user_delegation_key(self, blob_service_client: BlobServiceClient) -> UserDelegationKey:
-        # Get a user delegation key that's valid for 1 day
-        delegation_key_start_time = datetime.datetime.now(datetime.timezone.utc)
-        delegation_key_expiry_time = delegation_key_start_time + datetime.timedelta(days=1)
-
-        user_delegation_key = blob_service_client.get_user_delegation_key(
-            key_start_time=delegation_key_start_time,
-            key_expiry_time=delegation_key_expiry_time
-        )
-
-        return user_delegation_key
-    # </Snippet_request_user_delegation_key>
-
-    # <Snippet_create_user_delegation_sas_blob>
-    def create_user_delegation_sas_blob(self, blob_client: BlobClient, user_delegation_key: UserDelegationKey):
-        # Create a SAS token that's valid for one day, as an example
-        start_time = datetime.datetime.now(datetime.timezone.utc)
-        expiry_time = start_time + datetime.timedelta(days=1)
-
-        sas_token = generate_blob_sas(
-            account_name=blob_client.account_name,
-            container_name=blob_client.container_name,
-            blob_name=blob_client.blob_name,
-            user_delegation_key=user_delegation_key,
-            permission=BlobSasPermissions(read=True),
-            expiry=expiry_time,
-            start=start_time
-        )
-
-        return sas_token
-    # </Snippet_create_user_delegation_sas_blob>
-
-    def use_user_delegation_sas_blob(self, blob_service_client: BlobServiceClient):
-        user_delegation_key = self.request_user_delegation_key(blob_service_client=blob_service_client)
-
-        blob_client = blob_service_client.get_blob_client(container="sample-container", blob="sample-blob.txt")
-        sas_token = self.create_user_delegation_sas_blob(blob_client=blob_client, user_delegation_key=user_delegation_key)
-
-        # <Snippet_use_user_delegation_sas_blob>
-        # The SAS token string can be appended to the resource URL with a ? delimiter
-        # or passed as the credential argument to the client constructor
-        sas_url = f"{blob_client.url}?{sas_token}"
-        
-        # Create a BlobClient object with SAS authorization
-        blob_client_sas = BlobClient.from_blob_url(blob_url=sas_url)
-        # </Snippet_use_user_delegation_sas_blob>
-
-    # <Snippet_create_user_delegation_sas_container>
-    def create_user_delegation_sas_container(self, container_client: ContainerClient, user_delegation_key: UserDelegationKey):
-        # Create a SAS token that's valid for one day, as an example
-        start_time = datetime.datetime.now(datetime.timezone.utc)
-        expiry_time = start_time + datetime.timedelta(days=1)
-
-        sas_token = generate_container_sas(
-            account_name=container_client.account_name,
-            container_name=container_client.container_name,
-            user_delegation_key=user_delegation_key,
-            permission=BlobSasPermissions(read=True),
-            expiry=expiry_time,
-            start=start_time
-        )
-
-        return sas_token
-    # </Snippet_create_user_delegation_sas_container>
-
-    def use_user_delegation_sas_container(self, blob_service_client: BlobServiceClient):
-        user_delegation_key = self.request_user_delegation_key(blob_service_client=blob_service_client)
-
-        container_client = blob_service_client.get_container_client(container="sample-container")
-        sas_token = self.create_user_delegation_sas_container(container_client=container_client, user_delegation_key=user_delegation_key)
-
-        # <Snippet_use_user_delegation_sas_container>
-        # The SAS token string can be appended to the resource URL with a ? delimiter
-        # or passed as the credential argument to the client constructor
-        sas_url = f"{container_client.url}?{sas_token}"
-        
-        # Create a ContainerClient object with SAS authorization
-        container_client_sas = ContainerClient.from_container_url(container_url=sas_url)
-        # </Snippet_use_user_delegation_sas_container>
-
-    # <Snippet_create_service_sas_container>
-    def create_service_sas_container(self, container_client: ContainerClient, account_key: str):
-        # Create a SAS token that's valid for one day, as an example
-        start_time = datetime.datetime.now(datetime.timezone.utc)
-        expiry_time = start_time + datetime.timedelta(days=1)
-
-        sas_token = generate_container_sas(
-            account_name=container_client.account_name,
-            container_name=container_client.container_name,
-            account_key=account_key,
-            permission=BlobSasPermissions(read=True, list=True),
-            expiry=expiry_time,
-            start=start_time
-        )
-
-        return sas_token
-    # </Snippet_create_service_sas_container>
-
-    def use_service_sas_container(self, blob_service_client: BlobServiceClient):
-        container_client = blob_service_client.get_container_client(container="speechtraining")
-        # Assumes the service client object was created with a shared access key
-        sas_token = self.create_service_sas_container(container_client=container_client, account_key=blob_service_client.credential.account_key)
-
-        # <Snippet_use_service_sas_container>
-        # The SAS token string can be appended to the resource URL with a ? delimiter
-        # or passed as the credential argument to the client constructor
-        sas_url = f"{container_client.url}?{sas_token}"
-        # Create a ContainerClient object with SAS authorization
-        container_client_sas = ContainerClient.from_container_url(container_url=sas_url)
-        return sas_url
-        # </Snippet_use_service_sas_container>
-
-    # <Snippet_create_service_sas_blob>
-    def create_service_sas_blob(self, blob_client: BlobClient, account_key: str):
-        # Create a SAS token that's valid for one day, as an example
-        start_time = datetime.datetime.now(datetime.timezone.utc)
-        expiry_time = start_time + datetime.timedelta(days=1)
-
-        sas_token = generate_blob_sas(
-            account_name=blob_client.account_name,
-            container_name=blob_client.container_name,
-            blob_name=blob_client.blob_name,
-            account_key=account_key,
-            permission=BlobSasPermissions(read=True),
-            expiry=expiry_time,
-            start=start_time
-        )
-
-        return sas_token
-    # </Snippet_create_service_sas_blob>
-
-    def use_service_sas_blob(self, blob_service_client: BlobServiceClient):
-        blob_client = blob_service_client.get_blob_client(container="sample-container", blob="sample-blob.txt")
-        # Assumes the service client object was created with a shared access key
-        sas_token = self.create_service_sas_blob(blob_client=blob_client, account_key=blob_service_client.credential.account_key)
-
-        # <Snippet_use_service_sas_blob>
-        # The SAS token string can be appended to the resource URL with a ? delimiter
-        # or passed as the credential argument to the client constructor
-        sas_url = f"{blob_client.url}?{sas_token}"
-        
-        # Create a BlobClient object with SAS authorization
-        blob_client_sas = BlobClient.from_blob_url(blob_url=sas_url)
-        # </Snippet_use_service_sas_blob>
-
-if __name__ == '__main__':
-    sample = SASSamples()
-    storage_account_name="rstorage2speech"
-    storage_account_key=os.getenv('AZURE_STORAGE_KEY')
-
-    # TODO: Replace <storage-account-name> with your actual storage account name
-    account_url = f"https://{storage_account_name}.blob.core.windows.net"
-
-    blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
-    
-    # sample.use_user_delegation_sas_blob(blob_service_client=blob_service_client)
-    # sample.use_user_delegation_sas_container(blob_service_client=blob_service_client)
-
-    account_url = f"https://{storage_account_name}.blob.core.windows.net"
-    blob_service_client_account_key = BlobServiceClient(account_url, credential=storage_account_key)
-
-    # sample.use_service_sas_container(blob_service_client=blob_service_client_account_key)
-    # sample.use_service_sas_blob(blob_service_client=blob_service_client_account_key)
-    # sample.use_account_sas(blob_service_client=blob_service_client_account_key)
-    try: 
-    
-        # Get configuration settings 
-        # load_dotenv()
-        form_endpoint = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT')
-        form_key = os.getenv('AZURE_FORM_RECOGNIZER_KEY')
-        trainingDataUrl = "https://rstorage2speech.blob.core.windows.net/speechtraining?sp=rl&st=2023-11-07T03:12:21Z&se=2023-11-07T11:12:21Z&spr=https&sv=2022-11-02&sr=c&sig=femwtlWZvhMbDSWw7bk9bHHLhaWRc8n6FT%2BIpgs6nSk%3D"
-        # trainingDataUrl = sample.use_service_sas_container(blob_service_client=blob_service_client_account_key)
-
-        # Authenticate Form Training Client
-        form_recognizer_client = FormRecognizerClient(form_endpoint, AzureKeyCredential(form_key))
-        form_training_client = FormTrainingClient(form_endpoint, AzureKeyCredential(form_key))
-
-        # Train model 
-        poller = form_training_client.begin_training(trainingDataUrl, use_training_labels=True)
-        model = poller.result()
-
-        print("Model ID: {}".format(model.model_id))
-        print("Status: {}".format(model.status))
-        print("Training started on: {}".format(model.training_started_on))
-        print("Training completed on: {}".format(model.training_completed_on))
-
-    except Exception as ex:
-        print(ex)    
+    # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
+    print(error.info())
+    print(error.read().decode("utf8", 'ignore'))
