@@ -1,0 +1,8 @@
+openai
+streamlit
+langchain
+python-docx 
+langchain_experimental
+pyodbc
+matplotlib
+
